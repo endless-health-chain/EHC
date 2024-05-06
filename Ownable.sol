@@ -1,76 +1,49 @@
-// SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts v4.4.1 (access/Ownable.sol)
+// SPDX-License-Identifier: MIT OR Apache-2.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.0;
 
-import "../utils/Context.sol";
+/// @title Ownable Contract
+/// @author Matter Labs
+contract Ownable {
+    /// @dev Storage position of the masters address (keccak256('eip1967.proxy.admin') - 1)
+    bytes32 private constant MASTER_POSITION = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
-/**
- * @dev Contract module which provides a basic access control mechanism, where
- * there is an account (an owner) that can be granted exclusive access to
- * specific functions.
- *
- * By default, the owner account will be the one that deploys the contract. This
- * can later be changed with {transferOwnership}.
- *
- * This module is used through inheritance. It will make available the modifier
- * `onlyOwner`, which can be applied to your functions to restrict their use to
- * the owner.
- */
-abstract contract Ownable is Context {
-    address private _owner;
-
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    constructor() {
-        _transferOwnership(_msgSender());
+    /// @notice Contract constructor
+    /// @dev Sets msg sender address as masters address
+    /// @param masterAddress Master address
+    constructor(address masterAddress) {
+        setMaster(masterAddress);
     }
 
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view virtual returns (address) {
-        return _owner;
+    /// @notice Check if specified address is master
+    /// @param _address Address to check
+    function requireMaster(address _address) internal view {
+        require(_address == getMaster(), "1c"); // oro11 - only by master
     }
 
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
-        _;
+    /// @notice Returns contract masters address
+    /// @return master Master's address
+    function getMaster() public view returns (address master) {
+        bytes32 position = MASTER_POSITION;
+        assembly {
+            master := sload(position)
+        }
     }
 
-    /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
-     */
-    function renounceOwnership() public virtual onlyOwner {
-        _transferOwnership(address(0));
+    /// @dev Sets new masters address
+    /// @param _newMaster New master's address
+    function setMaster(address _newMaster) internal {
+        bytes32 position = MASTER_POSITION;
+        assembly {
+            sstore(position, _newMaster)
+        }
     }
 
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
-        _transferOwnership(newOwner);
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Internal function without access restriction.
-     */
-    function _transferOwnership(address newOwner) internal virtual {
-        address oldOwner = _owner;
-        _owner = newOwner;
-        emit OwnershipTransferred(oldOwner, newOwner);
+    /// @notice Transfer mastership of the contract to new master
+    /// @param _newMaster New masters address
+    function transferMastership(address _newMaster) external {
+        requireMaster(msg.sender);
+        require(_newMaster != address(0), "1d"); // otp11 - new masters address can't be zero address
+        setMaster(_newMaster);
     }
 }
